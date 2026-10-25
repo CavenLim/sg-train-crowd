@@ -1,0 +1,28 @@
+name: Collect crowd data
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: collect
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch data
+        env:
+          LTA_API_KEY: ${{ secrets.LTA_API_KEY }}
+        run: python3 collect.py
+      - name: Commit data
+        run: |
+          git config user.name "crowd-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add data
+          git diff --staged --quiet && exit 0
+          git commit -m "data $(date -u +%FT%TZ)"
+          git pull --rebase
+          git push
